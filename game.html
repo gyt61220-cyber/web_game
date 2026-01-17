@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sword Master - Mini Action Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        #container {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .screen {
+            display: none;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        /* Home Screen */
+        #homeScreen {
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            gap: 40px;
+        }
+
+        .game-title {
+            font-size: 80px;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 4px 4px 8px rgba(0, 0, 0, 0.5);
+            animation: pulse 2s infinite;
+        }
+
+        .game-subtitle {
+            font-size: 24px;
+            color: #ffd700;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .start-button {
+            padding: 15px 40px;
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .start-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 12px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .start-button:active {
+            transform: scale(0.98);
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        /* Game Screen */
+        #gameScreen {
+            justify-content: center;
+            align-items: center;
+            background: #1a1a2e;
+        }
+
+        #gameCanvas {
+            display: block;
+            background: linear-gradient(180deg, #16213e 0%, #0f3460 100%);
+            border: 3px solid #ffd700;
+            cursor: crosshair;
+            max-width: 100%;
+            max-height: 100%;
+        }
+
+        /* HUD */
+        .hud {
+            position: fixed;
+            top: 20px;
+            width: 100%;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            color: white;
+            font-size: 20px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+            pointer-events: none;
+        }
+
+        .hud-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px 20px;
+            border-radius: 10px;
+        }
+
+        .health-bar {
+            width: 200px;
+            height: 25px;
+            background: #333;
+            border: 2px solid #fff;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        .health-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff0000, #ff6600, #00ff00);
+            width: 100%;
+            transition: width 0.3s;
+        }
+
+        /* Game Over Screen */
+        #gameOverScreen {
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            gap: 30px;
+        }
+
+        .game-over-title {
+            font-size: 60px;
+            font-weight: bold;
+            color: #ff0000;
+            text-shadow: 4px 4px 8px rgba(0, 0, 0, 0.7);
+        }
+
+        .final-score {
+            font-size: 36px;
+            color: #ffd700;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+        }
+
+        .restart-button {
+            padding: 15px 40px;
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .restart-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 12px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .restart-button:active {
+            transform: scale(0.98);
+        }
+
+        .instructions {
+            color: #aaa;
+            font-size: 16px;
+            margin-top: 20px;
+            text-align: center;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <!-- Home Screen -->
+        <div id="homeScreen" class="screen active">
+            <div class="game-title">⚔️ SWORD MASTER ⚔️</div>
+            <div class="game-subtitle">A Mini Action Game</div>
+            <button class="start-button" onclick="startGame()">START GAME</button>
+            <div class="instructions">
+                Arrow Keys or WASD to Move<br>
+                SPACE to Attack<br>
+                Defeat enemies and survive!
+            </div>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="gameScreen" class="screen">
+            <canvas id="gameCanvas"></canvas>
+            <div class="hud">
+                <div class="hud-item">
+                    Health:
+                    <div class="health-bar">
+                        <div id="healthFill" class="health-fill"></div>
+                    </div>
+                </div>
+                <div class="hud-item">Score: <span id="scoreDisplay">0</span></div>
+                <div class="hud-item">Wave: <span id="waveDisplay">1</span></div>
+            </div>
+        </div>
+
+        <!-- Game Over Screen -->
+        <div id="gameOverScreen" class="screen">
+            <div class="game-over-title">GAME OVER</div>
+            <div class="final-score">Final Score: <span id="finalScore">0</span></div>
+            <button class="restart-button" onclick="restartGame()">PLAY AGAIN</button>
+        </div>
+    </div>
+
+    <script>
+        // Canvas setup
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Responsive canvas sizing
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Game states
+        const GAME_STATE = {
+            HOME: 'home',
+            PLAYING: 'playing',
+            GAME_OVER: 'gameOver'
+        };
+
+        // Game variables
+        let gameState = GAME_STATE.HOME;
+        let score = 0;
+        let wave = 1;
+
+        // Player object
+        const player = {
+            x: 0,
+            y: 0,
+            width: 30,
+            height: 30,
+            vx: 0,
+            vy: 0,
+            speed: 5,
+            maxHealth: 100,
+            health: 100,
+            attacking: false,
+            attackCooldown: 0,
+            attackCooldownMax: 30,
+            swordLength: 40,
+            swordAngle: 0
+        };
+
+        // Enemy array
+        let enemies = [];
+
+        // Input handling
+        const keys = {};
+        window.addEventListener('keydown', (e) => {
+            keys[e.key.toLowerCase()] = true;
+
+            if (e.key === ' ') {
+                e.preventDefault();
+                if (gameState === GAME_STATE.PLAYING) {
+                    playerAttack();
+                }
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            keys[e.key.toLowerCase()] = false;
+        });
+
+        // Screen management
+        function showScreen(screenName) {
+            document.querySelectorAll('.screen').forEach(screen => {
+                screen.classList.remove('active');
+            });
+            document.getElementById(screenName + 'Screen').classList.add('active');
+        }
+
+        // Start game
+        function startGame() {
+            gameState = GAME_STATE.PLAYING;
+            score = 0;
+            wave = 1;
+            player.health = player.maxHealth;
+            player.x = canvas.width / 2;
+            player.y = canvas.height / 2;
+            enemies = [];
+            showScreen('game');
+            gameLoop();
+        }
+
+        // Restart game
+        function restartGame() {
+            startGame();
+        }
+
+        // Player attack
+        function playerAttack() {
+            if (player.attackCooldown === 0) {
+                player.attacking = true;
+                player.attackCooldown = player.attackCooldownMax;
+            }
+        }
+
+        // Spawn enemy
+        function spawnEnemy() {
+            const side = Math.random();
+            let x, y;
+
+            if (side < 0.25) {
+                // Top
+                x = Math.random() * canvas.width;
+                y = -30;
+            } else if (side < 0.5) {
+                // Bottom
+                x = Math.random() * canvas.width;
+                y = canvas.height + 30;
+            } else if (side < 0.75) {
+                // Left
+                x = -30;
+                y = Math.random() * canvas.height;
+            } else {
+                // Right
+                x = canvas.width + 30;
+                y = Math.random() * canvas.height;
+            }
+
+            enemies.push({
+                x: x,
+                y: y,
+                width: 25,
+                height: 25,
+                health: 20,
+                maxHealth: 20,
+                speed: 1.5 + wave * 0.3,
+                damage: 10
+            });
+        }
+
+        // Update player
+        function updatePlayer() {
+            // Movement input
+            let moveX = 0;
+            let moveY = 0;
+
+            if (keys['arrowup'] || keys['w']) moveY = -1;
+            if (keys['arrowdown'] || keys['s']) moveY = 1;
+            if (keys['arrowleft'] || keys['a']) moveX = -1;
+            if (keys['arrowright'] || keys['d']) moveX = 1;
+
+            // Normalize diagonal movement
+            if (moveX !== 0 && moveY !== 0) {
+                moveX *= 0.707;
+                moveY *= 0.707;
+            }
+
+            player.vx = moveX * player.speed;
+            player.vy = moveY * player.speed;
+
+            // Update position
+            player.x += player.vx;
+            player.y += player.vy;
+
+            // Boundary collision
+            if (player.x - player.width / 2 < 0) player.x = player.width / 2;
+            if (player.x + player.width / 2 > canvas.width) player.x = canvas.width - player.width / 2;
+            if (player.y - player.height / 2 < 0) player.y = player.height / 2;
+            if (player.y + player.height / 2 > canvas.height) player.y = canvas.height - player.height / 2;
+
+            // Update sword angle based on movement
+            if (moveX !== 0 || moveY !== 0) {
+                player.swordAngle = Math.atan2(moveY, moveX);
+            }
+
+            // Update attack cooldown
+            if (player.attackCooldown > 0) {
+                player.attackCooldown--;
+            } else {
+                player.attacking = false;
+            }
+        }
+
+        // Update enemies
+        function updateEnemies() {
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                const enemy = enemies[i];
+
+                // Move toward player
+                const dx = player.x - enemy.x;
+                const dy = player.y - enemy.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance > 0) {
+                    enemy.x += (dx / distance) * enemy.speed;
+                    enemy.y += (dy / distance) * enemy.speed;
+                }
+
+                // Check collision with player
+                if (distance < (player.width + enemy.width) / 2) {
+                    player.health -= enemy.damage * 0.016; // Per frame damage
+                }
+
+                // Check collision with sword
+                if (player.attacking) {
+                    const swordX = player.x + Math.cos(player.swordAngle) * player.swordLength;
+                    const swordY = player.y + Math.sin(player.swordAngle) * player.swordLength;
+
+                    const distToSword = Math.hypot(swordX - enemy.x, swordY - enemy.y);
+
+                    if (distToSword < 30) {
+                        enemy.health -= 25;
+                    }
+                }
+
+                // Remove dead enemies
+                if (enemy.health <= 0) {
+                    enemies.splice(i, 1);
+                    score += 100;
+
+                    // Increase wave every 5 kills
+                    if (score % 500 === 0) {
+                        wave = Math.floor(score / 500) + 1;
+                    }
+                }
+            }
+        }
+
+        // Spawn logic
+        let spawnCounter = 0;
+        function manageSpawning() {
+            spawnCounter++;
+
+            // Spawn rate increases with wave
+            const spawnRate = Math.max(30 - wave * 2, 15);
+
+            if (spawnCounter > spawnRate) {
+                spawnEnemy();
+                spawnCounter = 0;
+            }
+
+            // Maintain enemy count
+            const maxEnemies = 3 + wave;
+            while (enemies.length < maxEnemies) {
+                spawnEnemy();
+            }
+        }
+
+        // Draw player
+        function drawPlayer() {
+            ctx.save();
+
+            // Draw player body
+            ctx.fillStyle = '#00ff88';
+            ctx.fillRect(
+                player.x - player.width / 2,
+                player.y - player.height / 2,
+                player.width,
+                player.height
+            );
+
+            // Draw eyes
+            ctx.fillStyle = '#000';
+            ctx.fillRect(player.x - 8, player.y - 5, 5, 5);
+            ctx.fillRect(player.x + 3, player.y - 5, 5, 5);
+
+            // Draw sword
+            ctx.strokeStyle = '#ffff00';
+            ctx.lineWidth = 4;
+            ctx.lineCap = 'round';
+
+            const swordX = player.x + Math.cos(player.swordAngle) * player.swordLength;
+            const swordY = player.y + Math.sin(player.swordAngle) * player.swordLength;
+
+            ctx.beginPath();
+            ctx.moveTo(player.x, player.y);
+            ctx.lineTo(swordX, swordY);
+            ctx.stroke();
+
+            // Draw sword tip
+            if (player.attacking) {
+                ctx.fillStyle = '#ff6600';
+                ctx.fillRect(swordX - 5, swordY - 5, 10, 10);
+            }
+
+            ctx.restore();
+        }
+
+        // Draw enemies
+        function drawEnemies() {
+            enemies.forEach(enemy => {
+                // Enemy body
+                ctx.fillStyle = '#ff4444';
+                ctx.fillRect(
+                    enemy.x - enemy.width / 2,
+                    enemy.y - enemy.height / 2,
+                    enemy.width,
+                    enemy.height
+                );
+
+                // Enemy health bar
+                const healthPercent = enemy.health / enemy.maxHealth;
+                ctx.fillStyle = '#ff0000';
+                ctx.fillRect(
+                    enemy.x - enemy.width / 2,
+                    enemy.y - enemy.height / 2 - 8,
+                    enemy.width * healthPercent,
+                    3
+                );
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(
+                    enemy.x - enemy.width / 2,
+                    enemy.y - enemy.height / 2 - 8,
+                    enemy.width,
+                    3
+                );
+
+                // Enemy eyes
+                ctx.fillStyle = '#000';
+                ctx.fillRect(enemy.x - 6, enemy.y - 3, 4, 4);
+                ctx.fillRect(enemy.x + 2, enemy.y - 3, 4, 4);
+            });
+        }
+
+        // Draw game
+        function draw() {
+            // Clear canvas
+            ctx.fillStyle = 'rgba(15, 52, 96, 0.2)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw grid background
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < canvas.width; i += 50) {
+                ctx.beginPath();
+                ctx.moveTo(i, 0);
+                ctx.lineTo(i, canvas.height);
+                ctx.stroke();
+            }
+            for (let i = 0; i < canvas.height; i += 50) {
+                ctx.beginPath();
+                ctx.moveTo(0, i);
+                ctx.lineTo(canvas.width, i);
+                ctx.stroke();
+            }
+
+            drawPlayer();
+            drawEnemies();
+
+            // Update HUD
+            document.getElementById('healthFill').style.width = 
+                (player.health / player.maxHealth) * 100 + '%';
+            document.getElementById('scoreDisplay').textContent = score;
+            document.getElementById('waveDisplay').textContent = wave;
+        }
+
+        // Main game loop
+        function gameLoop() {
+            if (gameState === GAME_STATE.PLAYING) {
+                updatePlayer();
+                updateEnemies();
+                manageSpawning();
+                draw();
+
+                // Check game over
+                if (player.health <= 0) {
+                    gameState = GAME_STATE.GAME_OVER;
+                    document.getElementById('finalScore').textContent = score;
+                    showScreen('gameOver');
+                } else {
+                    requestAnimationFrame(gameLoop);
+                }
+            }
+        }
+
+        // Initial screen
+        showScreen('home');
+    </script>
+</body>
+</html>
